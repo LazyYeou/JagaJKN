@@ -23,5 +23,5 @@ export function EmptyState({ title, children, action }: { title: string; childre
 }
 
 export function LoadingSkeleton({ label }: { label: string }) {
-  return <main className="page-wrap" aria-busy="true"><span className="demo-pill">Synthetic / Demo</span><p role="status" className="loading-label">{label}</p><div aria-hidden="true" className="skeleton-heading" /><div aria-hidden="true" className="metric-strip skeleton-metrics">{[0, 1, 2, 3].map(i => <div key={i} />)}</div><div className="surface skeleton-rows" aria-hidden="true">{[0, 1, 2, 3].map(i => <div key={i} />)}</div></main>;
+  return <main className="page-wrap" aria-busy="true"><p role="status" className="loading-label">{label}</p><div aria-hidden="true" className="skeleton-heading" /><div aria-hidden="true" className="metric-strip skeleton-metrics">{[0, 1, 2, 3].map(i => <div key={i} />)}</div><div className="surface skeleton-rows" aria-hidden="true">{[0, 1, 2, 3].map(i => <div key={i} />)}</div></main>;
 }

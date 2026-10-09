@@ -113,7 +113,7 @@ export function calculateCompanyRisk(input: RiskAssessmentInput): RiskCalculatio
       scoreContribution: input.p1StatusFeedback.triggered ? RISK_WEIGHTS.STATUS_FEEDBACK_DISPUTE : 0,
       dataStatus: input.p1StatusFeedback.dataStatus,
       explanation: input.p1StatusFeedback.explanation,
-      evidenceSummary: input.p1StatusFeedback.triggered ? "Feedback terkait kontrak terdeteksi; isi dan identitas pelapor dibatasi." : "Tidak ada feedback kategori ini pada kontrak efektif yang dievaluasi.",
+      evidenceSummary: input.p1StatusFeedback.triggered ? "Klarifikasi kontrak diterima; rincian dan identitas pekerja dibatasi." : "Belum ada klarifikasi pada kontrak yang diperiksa.",
     },
     {
       ruleCode: P1_RAPID_STATUS_VERSION_CHANGES,
@@ -124,7 +124,7 @@ export function calculateCompanyRisk(input: RiskAssessmentInput): RiskCalculatio
       scoreContribution: 0,
       dataStatus: input.p1RapidStatusChanges.dataStatus,
       explanation: input.p1RapidStatusChanges.explanation,
-      evidenceSummary: "Konteks informasional P1; tidak menambah skor.",
+      evidenceSummary: "Informasi tambahan mengenai kontrak; tidak menambah skor.",
     },
     ...([
       [WageRuleCode.P2_FIXED_COMPONENT_CONTRACT_DIFFERENCE, p2Fixed],
@@ -139,10 +139,10 @@ export function calculateCompanyRisk(input: RiskAssessmentInput): RiskCalculatio
         ? RISK_WEIGHTS.WAGE_COMPONENT_INCONSISTENCY
         : 0,
       dataStatus: indicator?.dataStatus ?? EvidenceDataStatus.INSUFFICIENT_DATA,
-      explanation: indicator?.explanation ?? "Indikator P2 belum dievaluasi.",
+      explanation: indicator?.explanation ?? "Pemeriksaan kesesuaian upah belum dapat dilakukan karena bukti belum cukup.",
       evidenceSummary: indicator?.triggered
-        ? "Indikasi berasal dari perbandingan agregat sumber perusahaan; detail baris pekerja tidak ditampilkan."
-        : "Ringkasan bukti agregat perusahaan/periode.",
+        ? "Indikasi berasal dari perbandingan total data perusahaan; rincian data pekerja tidak ditampilkan."
+        : "Ringkasan bukti tingkat perusahaan untuk periode ini.",
     })),
     {
       ruleCode: "P3_CONFIRMED_EMPLOYEE_SHARE_DELTA",
@@ -154,8 +154,8 @@ export function calculateCompanyRisk(input: RiskAssessmentInput): RiskCalculatio
       dataStatus: p3Complete ? EvidenceDataStatus.EVALUATED : EvidenceDataStatus.INSUFFICIENT_DATA,
       explanation: input.p3?.reason ?? "Rekonsiliasi belum tersedia untuk periode ini.",
       evidenceSummary: p3Complete
-        ? `Agregat employee-share 1% Rp${input.p3!.comparableConfirmedSum!.toLocaleString("id-ID")} dibanding potongan Rp${input.p3!.deductionSum.toLocaleString("id-ID")}.`
-        : "Bukti pembanding employee-share 1% belum cukup; delta tidak tersedia.",
+         ? `Total konfirmasi iuran pekerja 1% Rp${input.p3!.comparableConfirmedSum!.toLocaleString("id-ID")} dibanding total potongan Rp${input.p3!.deductionSum.toLocaleString("id-ID")}.`
+         : "Bukti pembanding iuran pekerja 1% belum cukup; selisih belum dapat dihitung.",
     },
     {
       ruleCode: "P5_REPORT_COUNT_THRESHOLD",
@@ -166,11 +166,11 @@ export function calculateCompanyRisk(input: RiskAssessmentInput): RiskCalculatio
       scoreContribution: p5Triggered ? RISK_WEIGHTS.REPORT_CLUSTER : 0,
       dataStatus: input.p5.dataStatus,
       explanation: p5Triggered
-        ? "Ambang agregasi P5 terpenuhi; laporan hanya digunakan sebagai sinyal awal untuk verifikasi."
-        : "Belum ada cluster laporan yang memenuhi ambang agregasi.",
+        ? "Jumlah minimum laporan pekerja terpenuhi; laporan hanya digunakan sebagai sinyal awal untuk pemeriksaan."
+        : "Belum ada jumlah laporan yang mencapai batas untuk ditampilkan.",
       evidenceSummary: p5Triggered
-        ? `${p5EligibleCount} laporan memenuhi ambang; identitas dan narasi tidak tersedia.`
-        : "Jumlah di bawah ambang tidak ditampilkan atau digunakan dalam skor.",
+        ? `${p5EligibleCount} laporan mencapai batas penayangan; identitas dan isi laporan tidak ditampilkan.`
+        : "Jumlah laporan di bawah batas tidak ditampilkan atau digunakan dalam penilaian.",
     },
   ];
 

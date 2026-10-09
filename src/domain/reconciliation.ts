@@ -83,8 +83,8 @@ export function decideReconciliation(input: ReconciliationInput): Reconciliation
       comparisonBasis: null,
       confirmationId: matchingCompanyPeriodConfirmation ? confirmation.id : null,
       reason: pending
-        ? "Konfirmasi simulasi belum diharapkan pada jendela waktu ini; menunggu konfirmasi."
-        : "Konfirmasi employee-share belum tersedia pada waktu skenario; belum dapat diverifikasi.",
+        ? "Konfirmasi simulasi belum diharapkan tersedia untuk periode ini; status menunggu konfirmasi."
+        : "Konfirmasi bagian iuran pekerja belum tersedia untuk periode ini; pencocokan belum dapat diverifikasi.",
     };
   }
 
@@ -97,7 +97,7 @@ export function decideReconciliation(input: ReconciliationInput): Reconciliation
       delta: null,
       comparisonBasis: null,
       confirmationId: confirmation.id,
-      reason: "Data potongan 1% pekerja belum lengkap atau tidak sebanding untuk perusahaan/periode ini.",
+      reason: "Data potongan iuran pekerja 1% belum lengkap untuk perusahaan dan periode ini.",
     };
   }
 
@@ -112,7 +112,7 @@ export function decideReconciliation(input: ReconciliationInput): Reconciliation
       delta: null,
       comparisonBasis: null,
       confirmationId: confirmation.id,
-      reason: "Konfirmasi simulasi tidak menyediakan jumlah employee-share yang sebanding.",
+      reason: "Konfirmasi simulasi tidak mencantumkan jumlah iuran pekerja 1% yang dapat dibandingkan.",
     };
   }
 
@@ -128,7 +128,7 @@ export function decideReconciliation(input: ReconciliationInput): Reconciliation
     comparisonBasis: "EMPLOYEE_SHARE_1_PERCENT",
     confirmationId: confirmation.id,
     reason: matched
-      ? "Agregat potongan pekerja 1% dan konfirmasi employee-share simulasi cocok dalam toleransi."
-      : "Ditemukan selisih pada agregat potongan 1% dan konfirmasi employee-share simulasi; perlu verifikasi.",
+      ? "Total potongan pekerja 1% dan konfirmasi simulasi untuk iuran pekerja 1% cocok dalam batas selisih yang diperbolehkan."
+      : "Ditemukan selisih antara total potongan pekerja 1% dan jumlah konfirmasi simulasi; perlu verifikasi.",
   };
 }

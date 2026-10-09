@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { SectionHeader } from "@/components/ui";
+import { toUserFacingError } from "@/components/evidence-copy";
 
 type FeedbackVersion = { id: string; versionNo: number; effectiveFrom: Date };
 
@@ -18,7 +19,7 @@ export function ContractFeedbackForm({ versions, defaultVersionId }: { versions:
     const body = Object.fromEntries(new FormData(form));
     setBusy(true);
     setError(false);
-    setNotice("Mengirim feedback terkait kontrak…");
+    setNotice("Mengirim klarifikasi kontrak…");
     try {
       const response = await fetch("/api/worker/contract-feedback", {
         method: "POST",
@@ -29,13 +30,13 @@ export function ContractFeedbackForm({ versions, defaultVersionId }: { versions:
         }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Feedback tidak dapat dikirim.");
-      setNotice("Feedback tersimpan sebagai klarifikasi kontrak yang terhubung ke akun Anda. Ini bukan kanal laporan P5.");
+      if (!response.ok) throw new Error(toUserFacingError(result.error, "Klarifikasi kontrak belum dapat dikirim. Periksa isian lalu coba lagi."));
+      setNotice("Klarifikasi tersimpan dan terkait dengan akun serta versi kontrak Anda. Gunakan Laporan terlindungi untuk menyampaikan laporan tanpa identitas pelapor di dalam data laporan.");
       form.reset();
       router.refresh();
     } catch (failure) {
       setError(true);
-      setNotice(failure instanceof Error ? failure.message : "Feedback tidak dapat dikirim.");
+      setNotice(toUserFacingError(failure, "Klarifikasi kontrak belum dapat dikirim. Coba lagi."));
     } finally {
       setBusy(false);
     }
@@ -43,8 +44,8 @@ export function ContractFeedbackForm({ versions, defaultVersionId }: { versions:
 
   return (
     <section className="surface section-gap feedback-surface">
-      <SectionHeader title="Ajukan feedback kontrak" description="Klarifikasi P1 · Akses dibatasi" />
-      <p className="muted">Feedback P1 terhubung dengan akun dan versi kontrak Anda untuk klarifikasi internal. Ini bukan laporan anonim P5.</p>
+      <SectionHeader title="Ajukan klarifikasi kontrak" description="Klarifikasi ini terkait dengan akun dan versi kontrak Anda." />
+      <p className="muted">Untuk laporan pekerja terlindungi yang tidak menyimpan identitas dalam data laporan, gunakan halaman Laporan terlindungi.</p>
       <form className="form-grid" onSubmit={(event) => void submit(event)}>
         <label>Versi kontrak terkait
           <select disabled={busy} name="contractVersionId" defaultValue={defaultVersionId ?? versions[0]?.id} required>
@@ -61,7 +62,7 @@ export function ContractFeedbackForm({ versions, defaultVersionId }: { versions:
         <label>Jadwal rutin yang ingin diklarifikasi (opsional)
           <input disabled={busy} name="claimedRegularSchedule" maxLength={300} placeholder="Contoh: jadwal rutin sesuai skenario" />
         </label>
-        <button className="button-primary" disabled={busy} type="submit">{busy ? "Mengirim…" : "Kirim feedback kontrak"}</button>
+        <button className="button-primary" disabled={busy} type="submit">{busy ? "Mengirim…" : "Kirim klarifikasi"}</button>
       </form>
       {notice && <p className={`status-message${error ? " status-error" : ""}`} role={error ? "alert" : "status"}>{notice}</p>}
     </section>

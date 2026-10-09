@@ -13,12 +13,12 @@ export const CONTRIBUTION_STATUS_COPY: Record<ContributionStatusCode, { label: s
   },
   PENDING: {
     label: "Menunggu Konfirmasi",
-    explanation: "Konfirmasi belum jatuh pada waktu yang diharapkan untuk skenario ini.",
+    explanation: "Konfirmasi belum diharapkan tersedia untuk periode ini. Status akan diperbarui setelah waktu konfirmasi tiba.",
     tone: "risk-medium",
   },
   UNVERIFIED: {
     label: "Belum Dapat Diverifikasi",
-    explanation: "Data konfirmasi tidak tersedia atau basis data tidak sebanding.",
+    explanation: "Data konfirmasi belum tersedia atau komponen iuran yang dibandingkan berbeda.",
     tone: "risk-incomplete",
   },
 };

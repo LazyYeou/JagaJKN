@@ -48,7 +48,7 @@ export function PortalNavigation({ items, label, accountName, companyName }: { i
         <div className="drawer-header"><strong>Portal {label}</strong><button className="drawer-close" onClick={close} type="button" aria-label="Tutup menu">×</button></div>
         <p className="drawer-account"><strong>{accountName}</strong><br />{companyName}</p>
         <nav aria-label={`Navigasi ${label}`} className="portal-nav">{links()}</nav>
-        <div className="drawer-footer"><p>Synthetic / Demo · Bukan sistem resmi BPJS</p><LogoutButton /></div>
+        <div className="drawer-footer"><LogoutButton /></div>
       </dialog>
     </div>
   );

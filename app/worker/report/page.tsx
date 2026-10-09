@@ -22,8 +22,8 @@ export default async function WorkerReportPage() {
         { label: "Laporkan masalah", href: "/worker/report" },
       ]}>
       <Link className="back-link" href="/worker">← Kembali ke ringkasan pekerja</Link>
-      <PageHeader title="Laporan pekerja terlindungi" eyebrow="P5 · Kanal laporan kategori" description="Synthetic / Demo · Sinyal awal untuk peninjauan, bukan penetapan pelanggaran atau kanal darurat." />
-      <div className="report-layout"><ProtectedReportForm /><aside className="privacy-panel" aria-label="Privasi dan penggunaan laporan"><h2>Bagaimana laporan digunakan?</h2><ol className="report-steps"><li>Pilih periode dan kategori masalah.</li><li>Laporan tersimpan tanpa ID akun atau pekerja di record laporan.</li><li>Auditor hanya melihat agregat yang memenuhi ambang 3 laporan setelah penilaian dihitung ulang.</li></ol><p className="muted">Metadata teknis infrastruktur di luar aplikasi dapat berlaku. Kanal ini tidak menjanjikan anonimitas mutlak.</p><Link className="task-link" href="/worker/contract">Klarifikasi kontrak melalui P1 →</Link></aside></div>
+      <PageHeader title="Laporan pekerja terlindungi" eyebrow="Laporan kategori" description="Sinyal awal untuk ditinjau, bukan penetapan pelanggaran atau kanal darurat." />
+      <div className="report-layout"><ProtectedReportForm /><aside className="privacy-panel" aria-label="Privasi dan penggunaan laporan"><h2>Bagaimana laporan digunakan?</h2><ol className="report-steps"><li>Pilih periode dan kategori masalah.</li><li>Data laporan tidak menyimpan identitas akun atau pekerja.</li><li>Auditor hanya melihat jumlah laporan jika mencapai minimal 3 pada periode yang sama. Jumlah ini digunakan saat penilaian dihitung ulang.</li></ol><p className="muted">Penyedia layanan dapat mencatat informasi akses teknis. Karena itu, kami tidak menjanjikan anonimitas mutlak. Jangan sertakan informasi pribadi dalam laporan.</p><Link className="task-link" href="/worker/contract">Ajukan klarifikasi kontrak →</Link></aside></div>
     </PortalShell>
   );
 }

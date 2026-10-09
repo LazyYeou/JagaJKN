@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toPlainEvidenceCopy } from "@/components/evidence-copy";
 import { SectionHeader } from "@/components/ui";
+import { contributionStatusCopy } from "@/domain/contribution-copy";
+import { coverageStatusLabel, toUserFacingError } from "@/components/evidence-copy";
 
 type ContractDefaults = {
   employmentType: string;
@@ -42,7 +44,7 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
     const request = { operation, endpoint, body, successLabel };
     setActive(operation);
     setNoticeOperation(operation);
-    setNotice("Menyimpan bukti dan menghitung ulang evaluasi P2/P3…");
+    setNotice("Menyimpan bukti dan memeriksa kesesuaian upah serta iuran…");
     setIsError(false);
     try {
       const response = await fetch(endpoint, {
@@ -51,18 +53,18 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
         body: JSON.stringify(body),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Permintaan gagal.");
+      if (!response.ok) throw new Error(toUserFacingError(result.error));
       if (result.evaluation) {
-        const fired = result.evaluation.indicators.filter((indicator: { triggered: boolean }) => indicator.triggered).length;
+        const fired = result.evaluation.indicators.filter((indicator: { triggered: boolean }) => indicator.triggered);
         const explanations = result.evaluation.indicators
-          .map((indicator: { explanation: string }) => indicator.explanation)
+          .filter((indicator: { triggered: boolean }) => indicator.triggered)
+          .map((indicator: { explanation: string }) => toPlainEvidenceCopy(indicator.explanation))
           .join(" ");
-        setNotice(`${successLabel}. Cakupan bukti: ${result.evaluation.coverageState}; indikator terpicu: ${fired}. ${explanations}`);
+        setNotice(`${successLabel}. ${coverageStatusLabel(result.evaluation.coverageState)}. ${fired.length > 0 ? `Perlu ditinjau: ${explanations}` : "Belum ditemukan perbedaan pada bukti yang diperiksa."}`);
       } else if (result.reconciliation) {
-        const delta = result.reconciliation.delta === null
-          ? ""
-          : ` Delta konfirmasi dikurangi potongan: ${result.reconciliation.delta < 0 ? "−" : "+"}Rp${Math.abs(result.reconciliation.delta).toLocaleString("id-ID")}.`;
-        setNotice(`${successLabel}. Status rekonsiliasi perusahaan-periode: ${result.reconciliation.status}.${delta} ${toPlainEvidenceCopy(result.reconciliation.reason)}`);
+        const status = contributionStatusCopy(result.reconciliation.status);
+        const delta = result.reconciliation.delta === null ? "" : ` ${reconciliationDifferenceCopy(result.reconciliation.delta)}`;
+        setNotice(`${successLabel}. Pencocokan iuran perusahaan untuk periode ini: ${status.label}. ${toPlainEvidenceCopy(result.reconciliation.reason)}${delta}`);
       } else {
         setNotice(`${successLabel}. Versi kontrak berhasil diterbitkan; versi terdahulu tetap tersimpan.`);
       }
@@ -70,7 +72,7 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
       router.refresh();
     } catch (error) {
       setIsError(true);
-      setNotice(error instanceof Error ? error.message : "Permintaan gagal.");
+      setNotice(toUserFacingError(error));
       setRetryRequest(request);
     } finally {
       setActive(null);
@@ -111,7 +113,7 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
         fixedAllowanceReported,
         variableAllowanceReported,
         reportedContributionBase: Number(values.get("reportedContributionBase")),
-      }] }, "Payroll tersimpan");
+      }] }, "Data upah tersimpan");
     } else {
       void send(kind, "/api/hr/deductions/import", { period: recordPeriod, records: [{
         ...worker,
@@ -131,7 +133,7 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
     <div className="editor-workspace" id="evidence-editor">
       <div className="workspace-picker" role="group" aria-label="Tugas pemeliharaan"><button type="button" aria-pressed={workspace === "source"} onClick={() => setWorkspace("source")}>Presensi, upah & potongan</button><button type="button" aria-pressed={workspace === "contract"} onClick={() => setWorkspace("contract")}>Versi kontrak</button></div>
       <section className="surface section-gap" id="contract-editor" hidden={workspace !== "contract"}>
-        <SectionHeader title="Terbitkan versi kontrak" description="P1 · Perubahan membuat versi baru, bukan mengganti isi versi sebelumnya." />
+        <SectionHeader title="Terbitkan versi kontrak" description="Perubahan membuat versi baru; isi versi sebelumnya tetap tersimpan." />
         <p className="muted">Versi baru mengikuti periode berikutnya ({period}); tanggal efektif harus tanggal 1. Versi sebelumnya tetap tersimpan.</p>
         <form className="form-grid" onSubmit={publishContract} onChange={event => { const values = new FormData(event.currentTarget); setDraft({ employmentType: String(values.get("employmentType")), baseWage: String(values.get("baseWage")), fixedAllowance: String(values.get("fixedAllowance")), expectedHoursPerMonth: String(values.get("expectedHoursPerMonth")) }); }}>
           <label>Tanggal efektif<input name="effectiveFrom" type="date" defaultValue={(() => { const [year, month] = period.split("-").map(Number); const nextMonth = new Date(Date.UTC(year!, month!, 1)); return `${nextMonth.getUTCFullYear()}-${String(nextMonth.getUTCMonth() + 1).padStart(2, "0")}-01`; })()} required /></label>
@@ -151,9 +153,9 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
       </section>
 
       <section className="surface section-gap" id="source-editor" hidden={workspace !== "source"}>
-        <SectionHeader title="Perbarui bukti sumber sintetis" description={`P2 / P3 · Periode ${period} · Nominal dalam IDR`} />
-        <p className="muted">Satu baris pekerja-periode per pengiriman. Periode memakai format YYYY-MM; nominal IDR berupa bilangan bulat.</p>
-        <div className="workspace-picker source-picker" role="group" aria-label="Jenis bukti sumber">{([['attendance', 'Presensi'], ['payroll', 'Payroll'], ['deduction', 'Potongan 1%']] as const).map(([task, label]) => <button key={task} type="button" aria-pressed={sourceTask === task} onClick={() => setSourceTask(task)}>{label}</button>)}</div>
+        <SectionHeader title="Perbarui data perusahaan" description={`Periode ${period} · Nominal dalam rupiah bulat`} />
+        <p className="muted">Perbarui presensi, data upah, atau potongan pekerja untuk periode ini.</p>
+        <div className="workspace-picker source-picker" role="group" aria-label="Jenis data perusahaan">{([['attendance', 'Presensi'], ['payroll', 'Data upah'], ['deduction', 'Potongan 1%']] as const).map(([task, label]) => <button key={task} type="button" aria-pressed={sourceTask === task} onClick={() => setSourceTask(task)}>{label}</button>)}</div>
         <div className="source-editors">
           <form className="form-grid" hidden={sourceTask !== "attendance"} onSubmit={(event) => submitRecord(event, "attendance")}>
              <h3>01 · Presensi</h3>
@@ -163,24 +165,29 @@ export function HrEvidenceEditor({ workerId, period, evidence, latestContract }:
             <button className="logout-button" disabled={active !== null} type="submit">Simpan presensi</button>
           </form>
           <form className="form-grid" hidden={sourceTask !== "payroll"} onSubmit={(event) => submitRecord(event, "payroll")}>
-             <h3>02 · Payroll</h3>
+              <h3>02 · Data upah</h3>
             <label>Periode<input name="period" value={period} readOnly required /></label>
             <label>Upah pokok dilaporkan<input name="baseWageReported" type="number" min="0" step="1" defaultValue={evidence.payroll?.baseWageReported ?? ""} required /></label>
             <label>Tunjangan tetap dilaporkan<input name="fixedAllowanceReported" type="number" min="0" step="1" defaultValue={evidence.payroll?.fixedAllowanceReported ?? ""} required /></label>
             <label>Tunjangan variabel dilaporkan<input name="variableAllowanceReported" type="number" min="0" step="1" defaultValue={evidence.payroll?.variableAllowanceReported ?? ""} required /></label>
             <label>Dasar iuran dilaporkan<input name="reportedContributionBase" type="number" min="0" step="1" defaultValue={evidence.payroll?.reportedContributionBase ?? ""} required /></label>
-            <button className="logout-button" disabled={active !== null} type="submit">Simpan payroll</button>
+            <button className="logout-button" disabled={active !== null} type="submit">Simpan data upah</button>
           </form>
           <form className="form-grid" hidden={sourceTask !== "deduction"} onSubmit={(event) => submitRecord(event, "deduction")}>
              <h3>03 · Potongan pekerja 1%</h3>
             <label>Periode<input name="period" value={period} readOnly required /></label>
             <label>Potongan (IDR)<input name="employeeOnePercentAmount" type="number" min="0" step="1" defaultValue={evidence.deduction?.employeeOnePercentAmount ?? ""} required /></label>
-            <button className="logout-button" disabled={active !== null} type="submit">Simpan potongan & rekonsiliasi</button>
+            <button className="logout-button" disabled={active !== null} type="submit">Simpan potongan & lakukan pencocokan</button>
           </form>
         </div>
         {noticeOperation !== "contract" && feedback()}
-        <p className="notice">Konfirmasi setoran dibaca dari adapter Simulasi BPJS. Potongan 1% hanya dibandingkan dengan komponen employee-share yang sebanding.</p>
       </section>
     </div>
   );
+}
+
+function reconciliationDifferenceCopy(delta: number) {
+  if (delta < 0) return `Konfirmasi lebih kecil Rp${Math.abs(delta).toLocaleString("id-ID")} dibanding total potongan pekerja.`;
+  if (delta > 0) return `Konfirmasi lebih besar Rp${delta.toLocaleString("id-ID")} dibanding total potongan pekerja.`;
+  return "Total konfirmasi dan total potongan pekerja sama.";
 }

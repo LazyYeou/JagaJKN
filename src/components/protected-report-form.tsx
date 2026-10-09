@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { P5_REPORT_CATEGORIES } from "@/domain/report-categories";
 import Link from "next/link";
 import { SectionHeader } from "@/components/ui";
+import { toUserFacingError } from "@/components/evidence-copy";
 
 type Receipt = { receiptId: string; period: string; category: string; duplicate: boolean };
 
@@ -35,7 +36,7 @@ export function ProtectedReportForm() {
         }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Laporan tidak dapat dikirim.");
+      if (!response.ok) throw new Error(toUserFacingError(result.error, "Laporan belum dapat dikirim. Periksa isian lalu coba lagi."));
       setReceipt({
         receiptId: result.receiptId,
         period: result.period,
@@ -45,7 +46,7 @@ export function ProtectedReportForm() {
       setSubmissionId(null);
       form.reset();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Laporan tidak dapat dikirim.");
+      setError(toUserFacingError(failure, "Laporan belum dapat dikirim. Coba lagi."));
     } finally {
       setBusy(false);
     }
@@ -61,11 +62,11 @@ export function ProtectedReportForm() {
     <div className="surface report-surface">
       {receipt && <><div className="receipt-panel" role="status" tabIndex={-1} ref={receiptPanel}>
         <h2>Laporan diterima.</h2>
-        <p>Receipt: <code>{receipt.receiptId}</code></p><p>Periode {receipt.period}. {receipt.duplicate ? "Pengiriman ulang dikenali sebagai laporan yang sama." : "Laporan baru tersimpan."}</p>
-        <p className="muted">Jumlah di bawah ambang 3 tidak ditampilkan atau digunakan dalam skor auditor. P4 menggunakan agregat setelah operator menjalankan recalculation.</p>
+        <p>Nomor bukti laporan: <code>{receipt.receiptId}</code></p><p>Periode {receipt.period}. {receipt.duplicate ? "Pengiriman ulang dikenali sebagai laporan yang sama." : "Laporan baru tersimpan."}</p>
+        <p className="muted">Auditor hanya melihat jumlah laporan jika mencapai minimal 3 pada periode yang sama. Jumlah tersebut digunakan saat penilaian dihitung ulang. Identitas pelapor tidak ditampilkan.</p>
       </div><div className="receipt-actions"><Link className="task-link" href="/worker/contributions">Kembali ke iuran →</Link><Link className="task-link" href="/worker">Ringkasan pekerja →</Link></div></>}
       <SectionHeader title={receipt ? "Kirim laporan lain" : "Kirim laporan kategori"} description="Hanya periode dan kategori · Tanpa narasi atau lampiran" />
-      <p className="muted">Laporan disimpan tanpa ID akun atau pekerja pada record laporan. Kanal ini berbeda dari feedback P1 yang terhubung ke kontrak Anda.</p>
+      <p className="muted">Data laporan tidak menyimpan identitas akun atau pekerja. Klarifikasi kontrak berbeda karena terkait dengan akun dan versi kontrak Anda.</p>
       <form className="form-grid" onSubmit={(event) => void submit(event)}>
         <label>Periode laporan<input disabled={busy} name="period" defaultValue="2026-09" pattern="\d{4}-(0[1-9]|1[0-2])" required onChange={clearRetryId} /></label>
         <label>Kategori
@@ -76,7 +77,7 @@ export function ProtectedReportForm() {
         <button className="button-primary" disabled={busy} type="submit">{busy ? "Mengirim…" : submissionId ? "Coba kirim ulang" : "Kirim laporan"}</button>
       </form>
       {error && <div className="status-message status-error" role="alert">
-        <p>{error}</p><p>Jika hasil kiriman belum pasti, coba lagi tanpa mengubah periode atau kategori agar ID pengiriman tetap sama.</p>
+        <p>{error}</p><p>Jika status pengiriman belum pasti, coba lagi tanpa mengubah periode atau kategori agar sistem mengenali pengiriman yang sama.</p>
       </div>}
     </div>
   );

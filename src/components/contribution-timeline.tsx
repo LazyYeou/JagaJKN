@@ -30,15 +30,21 @@ export function ContributionTimeline({ contributions }: { contributions: Contrib
           || contribution.companyPeriodReconciliation.status === "MISMATCH")
           && contribution.companyPeriodReconciliation.delta !== null;
         return <article className={`surface contribution-entry contribution-${contribution.companyPeriodReconciliation.status.toLowerCase()}`} key={contribution.period}>
-          <div className="contribution-summary"><p className="metric">Periode</p><h2 className="number">{contribution.period}</h2><p className="metric">Potongan pekerja 1%</p><strong className="deduction-value number">Rp{contribution.employeeOnePercentAmount.toLocaleString("id-ID")}</strong><p className="muted">{contribution.deductionSource}</p></div>
+          <div className="contribution-summary"><p className="metric">Periode</p><h2 className="number">{contribution.period}</h2><p className="metric">Potongan pekerja 1%</p><strong className="deduction-value number">Rp{contribution.employeeOnePercentAmount.toLocaleString("id-ID")}</strong><p className="muted">{contribution.deductionSource === "Synthetic / Demo" ? "Catatan perusahaan" : contribution.deductionSource}</p></div>
           <div className="contribution-content"><p className="metric">Pencocokan tingkat perusahaan</p><span className={`risk-badge ${status.tone}`}>{status.label}</span>
           <p>{status.explanation}</p>
           {contribution.companyPeriodReconciliation.reason !== status.explanation
             && <p className="muted">{toPlainEvidenceCopy(contribution.companyPeriodReconciliation.reason)}</p>}
-          {showsDelta && <p><strong>Delta agregat perusahaan:</strong> {contribution.companyPeriodReconciliation.delta! < 0 ? "−" : "+"}Rp{Math.abs(contribution.companyPeriodReconciliation.delta!).toLocaleString("id-ID")}</p>}
-          <div className="contribution-provenance">{contribution.companyPeriodReconciliation.sourceLabel && <p>{contribution.companyPeriodReconciliation.sourceLabel}</p>}{contribution.companyPeriodReconciliation.evaluationAsOf && <p>Skenario diperiksa pada {new Date(contribution.companyPeriodReconciliation.evaluationAsOf).toLocaleString("id-ID")}{contribution.companyPeriodReconciliation.calculatedAt ? ` · snapshot disimpan ${new Date(contribution.companyPeriodReconciliation.calculatedAt).toLocaleString("id-ID")}` : ""}</p>}</div></div>
+          {showsDelta && <p><strong>Selisih total konfirmasi dan potongan:</strong> {differenceCopy(contribution.companyPeriodReconciliation.delta!)}</p>}
+          <div className="contribution-provenance">{contribution.companyPeriodReconciliation.sourceLabel && <p>{contribution.companyPeriodReconciliation.sourceLabel}</p>}{contribution.companyPeriodReconciliation.evaluationAsOf && <p>Bukti dinilai hingga {new Date(contribution.companyPeriodReconciliation.evaluationAsOf).toLocaleString("id-ID")}{contribution.companyPeriodReconciliation.calculatedAt ? ` · Hasil pemeriksaan disimpan ${new Date(contribution.companyPeriodReconciliation.calculatedAt).toLocaleString("id-ID")}` : ""}</p>}</div></div>
         </article>;
       })}
     </div>
   );
+}
+
+function differenceCopy(delta: number) {
+  if (delta < 0) return `Konfirmasi lebih kecil Rp${Math.abs(delta).toLocaleString("id-ID")}.`;
+  if (delta > 0) return `Konfirmasi lebih besar Rp${delta.toLocaleString("id-ID")}.`;
+  return "Jumlah konfirmasi dan potongan sama.";
 }

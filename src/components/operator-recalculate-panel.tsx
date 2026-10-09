@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toUserFacingError } from "@/components/evidence-copy";
 
 type RecalculateResult = {
   period: string;
@@ -37,12 +38,12 @@ export function OperatorRecalculatePanel({ authorized: initialAuthorized }: { au
         body: JSON.stringify({ operatorKey: formData.get("operatorKey") }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Akses operator ditolak.");
+      if (!response.ok) throw new Error(toUserFacingError(body.error, "Akses operator ditolak. Periksa kunci akses lalu coba lagi."));
       setAuthorized(true);
       form.reset();
       router.refresh();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Akses operator gagal.");
+      setError(toUserFacingError(failure, "Akses operator gagal. Coba lagi."));
     } finally {
       setBusy(false);
     }
@@ -61,10 +62,10 @@ export function OperatorRecalculatePanel({ authorized: initialAuthorized }: { au
         body: JSON.stringify({ period }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Recalculation gagal.");
+      if (!response.ok) throw new Error(toUserFacingError(body.error, "Penilaian belum dapat dihitung. Periksa periode lalu coba lagi."));
       setResult(body as RecalculateResult);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Recalculation gagal.");
+      setError(toUserFacingError(failure, "Penilaian belum dapat dihitung. Coba lagi."));
     } finally {
       setBusy(false);
     }
@@ -77,13 +78,13 @@ export function OperatorRecalculatePanel({ authorized: initialAuthorized }: { au
     try {
       const response = await fetch("/api/demo/reset", { method: "POST" });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Reset baseline gagal.");
+      if (!response.ok) throw new Error(toUserFacingError(body.error, "Data awal belum dapat dipulihkan. Coba lagi."));
       setResetResult({ seed: body.seed });
       setResult(null);
       setConfirmReset(false);
       router.refresh();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Reset baseline gagal.");
+      setError(toUserFacingError(failure, "Data awal belum dapat dipulihkan. Coba lagi."));
     } finally {
       setBusy(false);
     }
@@ -93,9 +94,9 @@ export function OperatorRecalculatePanel({ authorized: initialAuthorized }: { au
     return (
       <section className="surface" style={{ maxWidth: 560, marginTop: 20 }}>
         <h2 style={{ color: "#173A70", fontSize: 18, marginTop: 0 }}>Masuk sebagai operator</h2>
-        <p className="muted">Gunakan key operator yang disimpan di environment server. Key tidak disimpan di browser.</p>
+        <p className="muted">Gunakan kunci akses yang diberikan pengelola sistem. Kunci tidak disimpan setelah masuk.</p>
         <form className="form-grid" onSubmit={(event) => void signIn(event)}>
-          <label>Key operator<input name="operatorKey" type="password" autoComplete="current-password" required /></label>
+          <label>Kunci akses<input name="operatorKey" type="password" autoComplete="current-password" required /></label>
           <button className="button-primary" disabled={busy} type="submit">{busy ? "Memeriksa…" : "Masuk"}</button>
         </form>
         {error && <p className="status-message status-error" role="alert">{error}</p>}
@@ -107,7 +108,7 @@ export function OperatorRecalculatePanel({ authorized: initialAuthorized }: { au
     <>
       <section className="surface operator-calculation section-gap">
         <div className="auditor-heading">
-          <div><h2>Hitung penilaian baru</h2><p className="muted">Waktu skenario tetap; waktu snapshot mengikuti database.</p></div>
+          <div><h2>Hitung penilaian baru</h2><p className="muted">Periode bukti tetap; waktu hasil penilaian mengikuti waktu penyimpanan.</p></div>
         </div>
         <form className="form-grid" onSubmit={(event) => void recalculate(event)}>
           <label>Periode<input name="period" defaultValue="2026-09" pattern="\d{4}-(0[1-9]|1[0-2])" required /></label>
@@ -115,23 +116,23 @@ export function OperatorRecalculatePanel({ authorized: initialAuthorized }: { au
         </form>
         {error && <p className="status-message status-error" role="alert">{error}</p>}
         {result && <div className="status-message" role="status">
-          <strong>Assessment tersimpan · {result.period}</strong>
+          <strong>Penilaian tersimpan · {result.period}</strong>
           <p>Perusahaan dinilai: {result.counts.assessed}; tinggi: {result.counts.high}; sedang: {result.counts.medium}; rendah: {result.counts.low}; data belum lengkap: {result.counts.insufficientData}.</p>
-          <p className="muted">Skenario: {new Date(result.evaluationAsOf).toLocaleString("id-ID")} · Disimpan: {new Date(result.computedAt).toLocaleString("id-ID")}</p>
+          <p className="muted">Bukti dinilai hingga {new Date(result.evaluationAsOf).toLocaleString("id-ID")} · Penilaian disimpan {new Date(result.computedAt).toLocaleString("id-ID")}</p>
           <Link href="/login">Keluar lalu pilih akun auditor</Link>
         </div>}
       </section>
        <section className="surface operator-reset" aria-labelledby="reset-heading">
-        <h2 id="reset-heading" style={{ color: "#173A70", fontSize: 18, marginTop: 0 }}>Reset baseline demo</h2>
-        <p className="muted">Reset mengganti seluruh data sintetis pada database ini dengan baseline seed. Jangan jalankan saat sesi demo lain sedang memakai data.</p>
+        <h2 id="reset-heading" style={{ color: "#173A70", fontSize: 18, marginTop: 0 }}>Pulihkan kondisi awal</h2>
+        <p className="muted">Tindakan ini mengganti seluruh perubahan dengan kondisi awal pada basis data ini. Jangan jalankan saat pengguna lain sedang memakai data.</p>
         {!confirmReset
-          ? <button className="logout-button" disabled={busy} onClick={() => { setConfirmReset(true); setResetResult(null); }} type="button">Siapkan reset</button>
-          : <div className="reset-confirmation" role="group" aria-label="Konfirmasi reset baseline">
-            <p><strong>Konfirmasi reset?</strong> Semua perubahan demo saat ini akan diganti baseline.</p>
+          ? <button className="logout-button" disabled={busy} onClick={() => { setConfirmReset(true); setResetResult(null); }} type="button">Siapkan pemulihan</button>
+          : <div className="reset-confirmation" role="group" aria-label="Konfirmasi pemulihan data awal">
+            <p><strong>Pulihkan kondisi awal?</strong> Semua perubahan saat ini akan diganti data awal.</p>
             <button className="logout-button" disabled={busy} onClick={() => setConfirmReset(false)} type="button">Batalkan</button>
-            <button className="destructive-button" disabled={busy} onClick={() => void resetBaseline()} type="button">{busy ? "Mereset…" : "Konfirmasi reset baseline"}</button>
+            <button className="destructive-button" disabled={busy} onClick={() => void resetBaseline()} type="button">{busy ? "Memulihkan…" : "Konfirmasi pemulihan data"}</button>
           </div>}
-        {resetResult && <p className="status-message" role="status">Baseline dipulihkan: {resetResult.seed.companies} perusahaan, {resetResult.seed.workers} pekerja, {resetResult.seed.payrollRecords} baris payroll.</p>}
+        {resetResult && <p className="status-message" role="status">Data awal dipulihkan: {resetResult.seed.companies} perusahaan, {resetResult.seed.workers} pekerja, {resetResult.seed.payrollRecords} catatan upah.</p>}
       </section>
     </>
   );

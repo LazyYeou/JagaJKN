@@ -24,7 +24,7 @@ export default async function WorkerContributionsPage() {
         { label: "Laporkan masalah", href: "/worker/report" },
       ]}>
       <Link className="back-link" href="/worker">← Kembali ke ringkasan pekerja</Link>
-      <PageHeader title="Timeline iuran" eyebrow="P3 · Potongan dan pencocokan" description="Nominal potongan milik Anda; status konfirmasi adalah agregat perusahaan pada periode yang sama." />
+      <PageHeader title="Riwayat iuran" eyebrow="Potongan dan pencocokan" description="Nominal potongan milik Anda; status konfirmasi menunjukkan pencocokan tingkat perusahaan pada periode yang sama." />
       <ContributionTimeline contributions={timeline.contributions} />
     </PortalShell>
   );

@@ -12,17 +12,17 @@ export default async function DemoOperatorPage() {
   const authorized = actor?.role === UserRole.DEMO_OPERATOR;
   return (
     <PortalShell
-      title="Recalculate bukti dan risiko"
-      role={authorized ? "Operator demo" : "Kontrol demo"}
-      accountName={actor?.displayName ?? "Akses operator diperlukan"}
+      title="Pemeriksaan bukti dan risiko"
+      role={authorized ? "Pengelola" : "Kontrol operator"}
+      accountName={authorized ? "Operator" : "Akses operator diperlukan"}
       navigation={[
         { label: "Kontrol operator", href: "/demo" },
-        { label: "Login peran demo", href: "/login" },
+        { label: "Pilih akun", href: "/login" },
       ]}
     >
-      <Link className="back-link" href="/login">← Kembali ke pemilihan peran demo</Link>
-      <PageHeader title="Kontrol operator demo" eyebrow="Pipeline bukti → penilaian" description="Hitung ulang P1/P2/P3/P5 dan simpan penilaian P4 baru. Catatan sumber dan snapshot terdahulu tetap tersimpan." />
-      <div className="notice">Hanya operator demo berwenang menjalankan tindakan ini. Skor adalah prioritas pemeriksaan, bukan bukti pelanggaran.</div>
+      <Link className="back-link" href="/login">← Kembali ke pemilihan akun</Link>
+      <PageHeader title="Kontrol operator" eyebrow="Pemeriksaan bukti → penilaian" description="Periksa ulang bukti dan simpan penilaian risiko baru. Catatan sumber dan hasil penilaian terdahulu tetap tersimpan." />
+      <div className="notice">Tindakan ini hanya tersedia bagi pengelola yang berwenang. Skor adalah prioritas pemeriksaan, bukan bukti pelanggaran.</div>
       <OperatorRecalculatePanel authorized={authorized} />
     </PortalShell>
   );
