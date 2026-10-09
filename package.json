@@ -1,0 +1,46 @@
+{
+  "name": "jagajkn",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/authorization.test.ts tests/session.test.ts tests/environment.test.ts tests/domain-m2.test.ts tests/p5.test.ts",
+    "test:db": "tsx --test tests/database.integration.test.ts",
+    "test:migration": "tsx --test tests/migration-backfill.integration.test.ts",
+    "test:api": "node --test tests/api.integration.test.mjs",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "test:e2e:browser": "playwright test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "tsx prisma/reset.ts",
+    "db:recompute-evidence": "tsx prisma/recompute-evidence.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "@tailwindcss/postcss": "4.3.3",
+    "next": "15.5.27",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.18.12",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "postcss": "8.5.29",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "postcss": "8.5.29"
+  }
+}

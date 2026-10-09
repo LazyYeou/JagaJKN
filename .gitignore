@@ -1,0 +1,27 @@
+node_modules/
+.next/
+.next-e2e/
+.next-ux/
+artifacts/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Build and test output
+out/
+build/
+dist/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Local editor / operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.opencode/
+tests/

@@ -1,0 +1,338 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  HR
+  WORKER
+  AUDITOR
+  DEMO_OPERATOR
+}
+
+enum DepositSourceType {
+  MOCK_BPJS
+}
+
+enum ReconciliationStatus {
+  MATCHED
+  MISMATCH
+  PENDING
+  UNVERIFIED
+}
+
+enum ProcessCode {
+  P1
+  P2
+  P3
+  P5
+}
+
+enum CoverageState {
+  COMPLETE
+  INCOMPLETE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  INSUFFICIENT_DATA
+}
+
+enum WageRuleCode {
+  P2_FIXED_COMPONENT_CONTRACT_DIFFERENCE
+  P2_RECURRING_VARIABLE_COMPONENT
+}
+
+enum EvidenceDataStatus {
+  EVALUATED
+  INSUFFICIENT_DATA
+}
+
+model Company {
+  id                    String                  @id
+  name                  String
+  externalCode          String                  @unique
+  createdAt             DateTime                @default(now())
+  users                 User[]
+  workers               Worker[]
+  deductions            DeductionRecord[]
+  depositConfirmations  DepositConfirmation[]
+  reconciliationResults ReconciliationResult[]
+  wageEvaluations       WageEvaluation[]
+  anonymousReports      AnonymousReport[]
+  riskAssessments       RiskAssessment[]
+  auditReviews          AuditReview[]
+}
+
+model User {
+  id             String            @id
+  displayName    String
+  role           UserRole
+  companyId      String?
+  workerId       String?           @unique
+  createdAt      DateTime          @default(now())
+  company        Company?          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  worker         Worker?           @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  createdContracts ContractVersion[] @relation("ContractAuthor")
+  contractClosures ContractClosure[] @relation("ContractClosureAuthor")
+  auditReviews   AuditReview[]
+
+  @@index([companyId, role])
+}
+
+model Worker {
+  id             String              @id
+  companyId      String
+  workerCode     String
+  displayName    String
+  createdAt      DateTime            @default(now())
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user           User?
+  contracts      ContractVersion[]
+  feedback       ContractFeedback[]
+  attendance     AttendanceRecord[]
+  payroll        PayrollRecord[]
+  deductions     DeductionRecord[]
+
+  @@unique([companyId, workerCode])
+  @@index([companyId, displayName])
+}
+
+model ContractVersion {
+  id                    String             @id
+  workerId              String
+  versionNo             Int
+  effectiveFrom         DateTime           @db.Date
+  effectiveTo           DateTime?          @db.Date
+  employmentType        String
+  baseWage              Int
+  fixedAllowance        Int
+  expectedHoursPerMonth Int
+  createdAt             DateTime           @default(now())
+  createdById           String
+  worker                Worker             @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  createdBy             User               @relation("ContractAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  feedback              ContractFeedback[]
+  closure               ContractClosure?   @relation("ClosedContract")
+  replacementClosures   ContractClosure[]  @relation("ReplacementVersion")
+
+  @@unique([workerId, versionNo])
+  @@index([workerId, effectiveFrom, effectiveTo])
+}
+
+// Effective-end changes are append-only. ContractVersion.effectiveTo remains
+// for compatibility with existing M1 rows and is not mutated by new publishes.
+model ContractClosure {
+  id                    String           @id @default(uuid())
+  contractVersionId     String           @unique
+  effectiveTo           DateTime         @db.Date
+  supersededByVersionId String?
+  closedById            String
+  closedAt              DateTime         @default(now())
+  contractVersion       ContractVersion  @relation("ClosedContract", fields: [contractVersionId], references: [id], onDelete: Restrict)
+  supersededByVersion   ContractVersion? @relation("ReplacementVersion", fields: [supersededByVersionId], references: [id], onDelete: Restrict)
+  closedBy              User             @relation("ContractClosureAuthor", fields: [closedById], references: [id], onDelete: Restrict)
+
+  @@index([effectiveTo])
+}
+
+model ContractFeedback {
+  id                String         @id @default(uuid())
+  workerId          String
+  contractVersionId String
+  category          String
+  claimedRegularSchedule String?
+  status            String         @default("SUBMITTED")
+  createdAt         DateTime       @default(now())
+  worker            Worker         @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  contractVersion   ContractVersion @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+
+  @@index([workerId, createdAt])
+  @@index([contractVersionId])
+}
+
+model AttendanceRecord {
+  id           String   @id
+  workerId     String
+  period       String   @db.VarChar(7)
+  actualHours  Int
+  overtimeHours Int
+  sourceTag    String   @default("Synthetic / Demo")
+  createdAt    DateTime @default(now())
+  worker       Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+
+  @@unique([workerId, period])
+  @@index([period])
+}
+
+model PayrollRecord {
+  id                        String   @id
+  workerId                  String
+  period                    String   @db.VarChar(7)
+  baseWageReported          Int
+  fixedAllowanceReported    Int
+  variableAllowanceReported Int
+  reportedContributionBase  Int
+  sourceTag                 String   @default("Synthetic / Demo")
+  createdAt                 DateTime @default(now())
+  worker                    Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+
+  @@unique([workerId, period])
+  @@index([period])
+}
+
+model DeductionRecord {
+  id                       String   @id
+  workerId                 String
+  companyId                String
+  period                   String   @db.VarChar(7)
+  employeeOnePercentAmount Int
+  sourceTag                String   @default("Synthetic / Demo")
+  createdAt                DateTime @default(now())
+  worker                   Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  company                  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([workerId, period])
+  @@index([companyId, period])
+}
+
+model DepositConfirmation {
+  id                           String            @id
+  companyId                    String
+  period                       String            @db.VarChar(7)
+  confirmedEmployeeShareAmount Int?
+  confirmedTotalAmount         Int?
+  confirmedAt                  DateTime?
+  reference                    String
+  sourceType                   DepositSourceType @default(MOCK_BPJS)
+  sourceTag                    String            @default("Synthetic / Demo")
+  company                      Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  reconciliations              ReconciliationResult[]
+
+  @@unique([companyId, period])
+}
+
+model ReconciliationResult {
+  id                           String                @id @default(uuid())
+  companyId                    String
+  period                       String                @db.VarChar(7)
+  status                       ReconciliationStatus
+  deductionSum                 Int
+  deductionRecordCount         Int                   @default(0)
+  comparableConfirmedSum       Int?
+  delta                        Int?
+  comparisonBasis              String?
+  confirmationId               String?
+  reason                       String
+  confirmationExpectedAt       DateTime?
+  evaluationAsOf               DateTime
+  calculatedAt                 DateTime
+  company                      Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  confirmation                 DepositConfirmation?  @relation(fields: [confirmationId], references: [id], onDelete: Restrict)
+  riskAssessments              RiskAssessment[]
+
+  @@index([companyId, period, calculatedAt])
+}
+
+model WageEvaluation {
+  id                    String         @id @default(uuid())
+  companyId             String
+  period                String         @db.VarChar(7)
+  ruleVersion           String
+  coverageState         CoverageState
+  expectedWorkerCount   Int
+  attendanceRecordCount Int
+  payrollRecordCount    Int
+  coveredContractCount  Int
+  rollingWindowComplete Boolean
+  evaluatedAt           DateTime       @default(now())
+  company               Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  indicators            WageIndicator[]
+  riskAssessments       RiskAssessment[]
+
+  @@index([companyId, period, evaluatedAt])
+}
+
+model WageIndicator {
+  id                  String            @id @default(uuid())
+  evaluationId        String
+  ruleCode            WageRuleCode
+  triggered           Boolean
+  affectedWorkerCount Int
+  dataStatus          EvidenceDataStatus
+  explanation         String
+  evaluation          WageEvaluation    @relation(fields: [evaluationId], references: [id], onDelete: Restrict)
+
+  @@unique([evaluationId, ruleCode])
+}
+
+model AnonymousReport {
+  id        String   @id @default(uuid())
+  companyId String
+  period    String   @db.VarChar(7)
+  category  String
+  createdAt DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@index([companyId, period, createdAt])
+}
+
+model RiskAssessment {
+  id            String       @id @default(uuid())
+  companyId     String
+  period        String       @db.VarChar(7)
+  score         Int
+  riskLevel     RiskLevel
+  coverageState CoverageState
+  ruleVersion   String
+  evaluationAsOf DateTime    @default(now())
+  p2EvaluationId String?
+  p3ReconciliationId String?
+  p5EligibleReportCount Int?
+  computedAt    DateTime     @default(now())
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  p2Evaluation  WageEvaluation? @relation(fields: [p2EvaluationId], references: [id], onDelete: Restrict)
+  p3Reconciliation ReconciliationResult? @relation(fields: [p3ReconciliationId], references: [id], onDelete: Restrict)
+  indicators    RiskIndicator[]
+  reviews       AuditReview[]
+
+  @@index([companyId, period, computedAt])
+}
+
+model RiskIndicator {
+  id             String         @id @default(uuid())
+  assessmentId   String
+  ruleCode       String
+  processCode    ProcessCode
+  categoryCode   String
+  categoryWeight Int
+  scoreContribution Int
+  triggered      Boolean
+  explanation    String
+  evidenceSummary String
+  dataStatus     String
+  assessment     RiskAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+
+  @@index([assessmentId, processCode])
+}
+
+model AuditReview {
+  id            String         @id @default(uuid())
+  companyId     String
+  assessmentId  String
+  reviewerId    String
+  status        String
+  note          String?
+  updatedAt     DateTime       @updatedAt
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  assessment    RiskAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  reviewer      User           @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([companyId, updatedAt])
+}
