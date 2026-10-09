@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/authorization.test.ts tests/session.test.ts tests/environment.test.ts tests/domain-m2.test.ts tests/p5.test.ts",
     "test:db": "tsx --test tests/database.integration.test.ts",
+    "test:seed": "tsx --test tests/seed-transaction.integration.test.ts",
     "test:migration": "tsx --test tests/migration-backfill.integration.test.ts",
     "test:api": "node --test tests/api.integration.test.mjs",
     "test:e2e": "node tests/e2e/run.mjs",

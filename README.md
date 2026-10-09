@@ -30,7 +30,24 @@ The operator account is not shown in the public account list. To request an oper
 
 ## Seed contents
 
-Seed/reset runs transactionally and recreates the same synthetic baseline: 5 companies, 100 workers, seeded role accounts, effective-dated contract versions, 3 months of attendance/payroll/deduction records, mock company-period confirmations, and the M0 P1/P3/P5 fixture records. The demo period is `2026-09`. Seed output reports counts only.
+Seed/reset runs transactionally and recreates the same synthetic baseline: 5 companies, 100 workers, seeded role accounts, effective-dated contract versions, 3 months of attendance/payroll/deduction records, mock company-period confirmations, and the M0 P1/P3/P5 fixture records. The demo period is `2026-09`. Seed output reports counts and elapsed time.
+
+Hosted PostgreSQL (including Supabase) adds network latency to each query. Seed/reset uses a scoped 120-second transaction timeout and a 10-second acquisition wait; Prisma's default 5-second transaction budget is too short for this multi-table operation. A `P2028` at roughly five seconds can be transaction expiration, even when a single-query connection probe succeeds. All seed writes and baseline evaluations still commit or roll back together.
+
+Read-only seed diagnostics (no reset or source writes):
+
+```powershell
+node --env-file=.env scripts/diagnose-prisma.mjs
+# Optional: reproduce the default transaction budget with repeated SELECT 1 calls.
+node --env-file=.env scripts/diagnose-prisma.mjs --default-budget
+
+# Run after a successful seed on the intended demo database.
+$env:SEED_TRANSACTION_TEST = 'true'
+$env:SEED_VERIFY_TEST = 'true'
+npm run test:seed
+```
+
+The opt-in tests perform only reads: a six-second PostgreSQL delay verifies the longer transaction budget, then persisted counts and A–E golden assessments are checked. They do not reset the configured database. Existing `tests/` ignore policy applies to these local regression tests.
 
 ## Checks
 
